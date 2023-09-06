@@ -8,15 +8,17 @@
 #include "HX711.h"
 
 // HX711 circuit wiring
-const int LOADCELL_DOUT_PIN = 2; // GPIO D4
-const int LOADCELL_SCK_PIN = 4;  /// GPIO D2
+const int LOADCELL_DOUT_PIN = 2; // GPIO2 D2
+const int LOADCELL_SCK_PIN = 4;  /// GPIO4 D4
 
 HX711 scale;
 
-///
-
+// CHANGE // // CHANGE // // CHANGE // // CHANGE //
+#define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
+#define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
 #define SECRET_CH_ID 1868201                   // replace 0000000 with your channel number
 #define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
+// CHANGE // // CHANGE // // CHANGE // // CHANGE //
 
 WiFiClient client;
 unsigned long myChannelNumber = SECRET_CH_ID;
@@ -30,6 +32,7 @@ Ticker ticker;
 int LED_WiFi = 2;
 float tempC_Sensor_1;
 float tempC_Sensor_2;
+float Weight_Sensor;
 void tick()
 {
   // toggle state
@@ -41,7 +44,7 @@ void tick_update_channel()
 
   ThingSpeak.setField(1, tempC_Sensor_1);
   ThingSpeak.setField(2, tempC_Sensor_2);
-
+  ThingSpeak.setField(3, tempC_Sensor_2);
   myStatus = String("Deshidratador IoT OK");
   ThingSpeak.setStatus(myStatus);
 
@@ -96,25 +99,25 @@ void setup()
   Serial.begin(115200);
   Serial.println("Deshidratador IoT ITESM 2023");
 
-  // WiFiManager wm;
+  WiFiManager wm;
 
-  // bool res;
+  bool res;
 
-  // res = wm.autoConnect("Deshidratador IoT"); // password protected ap
-  // ticker.attach(0.1, tick);
+  res = wm.autoConnect("Deshidratador IoT"); // password protected ap
+  ticker.attach(0.1, tick);
 
-  // if (!res)
-  // {
-  //   Serial.println("Failed to connect");
-  //   // ESP.restart();
-  // }
-  // else
-  // {
-  //   // if you get here you have connected to the WiFi
-  //   Serial.println("connected...yeey :)");
-  //   ticker.detach();
-  //   digitalWrite(LED_WiFi, LOW);
-  // }
+  if (!res)
+  {
+    Serial.println("Failed to connect");
+    // ESP.restart();
+  }
+  else
+  {
+    // if you get here you have connected to the WiFi
+    Serial.println("connected...yeey :)");
+    ticker.detach();
+    digitalWrite(LED_WiFi, LOW);
+  }
 
   //
   sensors.begin();
@@ -151,8 +154,8 @@ void setup()
   Serial.print(sensors.getResolution(Sensor_2), DEC);
   Serial.println();
 
-  // ThingSpeak.begin(client);
-  // ticker.attach(20, tick_update_channel);
+  ThingSpeak.begin(client);
+  ticker.attach(20, tick_update_channel);
 
   Serial.println("HX711 Demo");
 
@@ -182,7 +185,7 @@ void setup()
 
   //   scale.set_scale(1925); // this value is obtained by calibrating the scale with known weights; see the README for details
   // scale.set_scale(0.6849315068493151);
-   scale.set_scale(2280.f);  
+  scale.set_scale(2280.f);
   scale.tare(); // reset the scale to 0
 
   Serial.println("After setting up the scale:");
