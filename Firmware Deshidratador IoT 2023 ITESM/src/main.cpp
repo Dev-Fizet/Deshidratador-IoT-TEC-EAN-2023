@@ -7,7 +7,7 @@
 #include "ThingSpeak.h"
 #include "HX711.h"
 
-// HX711 circuit wiring
+// HX711 Circuit wiring
 const int LOADCELL_DOUT_PIN = 2; // GPIO2 D2
 const int LOADCELL_SCK_PIN = 4;  /// GPIO4 D4
 
@@ -15,7 +15,6 @@ HX711 scale;
 
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
 #define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
-#define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
 #define SECRET_CH_ID 1868201                   // replace 0000000 with your channel number
 #define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
