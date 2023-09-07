@@ -8,12 +8,12 @@
 #include "HX711.h"
 
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
-#define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
-boolean Calibration_Weight_Sensor = true;      // false Not Calibration // true Calibration
-double Known_Weight = 14.6;                    // Replace 14.6 with the value of the known object's weight in grams
-double Scale_Calibration_Result = 14.6;        // Replace 14.6 with the value of the known object's weight in grams
-#define SECRET_CH_ID 1868201                   // replace 0000000 with your channel number
-#define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
+String SECRET_NAME_TEAM = "Carlos-Fizet";      // replace Carlos-Fizet with your name Team
+boolean Calibration_Weight_Sensor = false;     // false Not Calibration // true Calibration
+double Known_Weight = 14.7;                    // Replace 14.6 with the value of the known object's weight in grams
+double Scale_Calibration_Result = 773;         // Replace 817 with the value result after of the process of calibration
+#define SECRET_CH_ID 2258947                   // replace 0000000 with your channel number of ThingSpeak
+#define SECRET_WRITE_APIKEY "WFQCMUA1Y5X6QIE5" // replace XYZ with your channel write API Key of ThingSpeak
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
 
 // HX711 Circuit wiring
@@ -99,7 +99,7 @@ void setup()
   ticker.attach(0.6, tick);
 
   Serial.begin(115200);
-  Serial.println("Deshidratador IoT ITESM 2023");
+  Serial.println("Deshidratador IoT TEC EAN 2023");
 
   if (Calibration_Weight_Sensor == false)
   {
@@ -107,7 +107,8 @@ void setup()
     WiFiManager wm;
 
     bool res;
-
+    String name_iot = "Deshidratador IoT ";
+    String name_device = name_iot + SECRET_NAME_TEAM;
     res = wm.autoConnect("Deshidratador IoT"); // password protected ap
     ticker.attach(0.1, tick);
 
@@ -129,93 +130,74 @@ void setup()
     Serial.println("Mode Calibration Weight Sensor");
   }
   //
-  sensors.begin();
-  // locate devices on the bus
-  Serial.println("Buscando Sensores de Temperatura DS18B20...");
-
-  if (!sensors.getAddress(Sensor_1, 0))
-  {
-    Serial.println("Error en Sensor 1");
-    digitalWrite(LED_WiFi, HIGH);
-    while (true)
-      ;
-  }
-  if (!sensors.getAddress(Sensor_2, 1))
-  {
-    Serial.println("Error en Sensor 2");
-    digitalWrite(LED_WiFi, HIGH);
-    while (true)
-      ;
-  }
-  Serial.println("Sensores OK!");
-  sensors.setResolution(Sensor_1, 12);
-  sensors.setResolution(Sensor_2, 12);
-
-  Serial.print("Sensor 1: ");
-  printAddress(Sensor_1);
-  Serial.print(" Resolución en Bits ");
-  Serial.print(sensors.getResolution(Sensor_1), DEC);
-  Serial.println();
-
-  Serial.print("Sensor 2: ");
-  printAddress(Sensor_2);
-  Serial.print(" Resolución en Bits ");
-  Serial.print(sensors.getResolution(Sensor_2), DEC);
-  Serial.println();
+  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
   if (Calibration_Weight_Sensor == false)
   {
-    ThingSpeak.begin(client);
-    ticker.attach(5, tick_update_channel);
+    sensors.begin();
+    // locate devices on the bus
+    Serial.println("Buscando Sensores de Temperatura DS18B20...");
+
+    if (!sensors.getAddress(Sensor_1, 0))
+    {
+      Serial.println("Error en Sensor 1");
+      digitalWrite(LED_WiFi, HIGH);
+      while (true)
+        ;
+    }
+    if (!sensors.getAddress(Sensor_2, 1))
+    {
+      Serial.println("Error en Sensor 2");
+      digitalWrite(LED_WiFi, HIGH);
+      while (true)
+        ;
+    }
+    Serial.println("Sensores OK!");
+    sensors.setResolution(Sensor_1, 12);
+    sensors.setResolution(Sensor_2, 12);
+
+    Serial.print("Sensor 1: ");
+    printAddress(Sensor_1);
+    Serial.print(" Resolución en Bits ");
+    Serial.print(sensors.getResolution(Sensor_1), DEC);
+    Serial.println();
+
+    Serial.print("Sensor 2: ");
+    printAddress(Sensor_2);
+    Serial.print(" Resolución en Bits ");
+    Serial.print(sensors.getResolution(Sensor_2), DEC);
+    Serial.println();
+
+    if (Calibration_Weight_Sensor == false)
+    {
+      ThingSpeak.begin(client);
+      ticker.attach(20, tick_update_channel);
+    }
+
+    Serial.println("HX711 Demo");
+
+    Serial.println("Initializing the scale");
+
+    scale.set_scale(Scale_Calibration_Result);
+    scale.tare(); // reset the scale to 0
+
+    Serial.println("After setting up the scale:");
+
+    Serial.print("read: \t\t");
+    Serial.println(scale.read()); // print a raw reading from the ADC
+
+    Serial.print("read average: \t\t");
+    Serial.println(scale.read_average(20)); // print the average of 20 readings from the ADC
+
+    Serial.print("get value: \t\t");
+    Serial.println(scale.get_value(5)); // print the average of 5 readings from the ADC minus the tare weight, set with tare()
+
+    Serial.print("get units: \t\t");
+    Serial.println(scale.get_units(5), 1); // print the average of 5 readings from the ADC minus tare weight, divided
+                                           // by the SCALE parameter set with set_scale
+
+    Serial.println("Readings:");
   }
-  Serial.println("HX711 Demo");
-
-  Serial.println("Initializing the scale");
-
-  // Initialize library with data output pin, clock input pin and gain factor.
-  // Channel selection is made by passing the appropriate gain:
-  // - With a gain factor of 64 or 128, channel A is selected
-  // - With a gain factor of 32, channel B is selected
-  // By omitting the gain factor parameter, the library
-  // default "128" (Channel A) is used here.
-
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-
-  Serial.println("Before setting up the scale:");
-  Serial.print("read: \t\t");
-  Serial.println(scale.read()); // print a raw reading from the ADC
-
-  Serial.print("read average: \t\t");
-  Serial.println(scale.read_average(20)); // print the average of 20 readings from the ADC
-
-  Serial.print("get value: \t\t");
-  Serial.println(scale.get_value(5)); // print the average of 5 readings from the ADC minus the tare weight (not set yet)
-
-  Serial.print("get units: \t\t");
-  Serial.println(scale.get_units(5), 1); // print the average of 5 readings from the ADC minus tare weight (not set) divided
-                                         // by the SCALE parameter (not set yet)
-
-  // scale.set_scale(1925); // this value is obtained by calibrating the scale with known weights; see the README for details
-  // scale.set_scale(0.6849315068493151);
-  scale.set_scale(2280.f);
-  scale.tare(); // reset the scale to 0
-
-  Serial.println("After setting up the scale:");
-
-  Serial.print("read: \t\t");
-  Serial.println(scale.read()); // print a raw reading from the ADC
-
-  Serial.print("read average: \t\t");
-  Serial.println(scale.read_average(20)); // print the average of 20 readings from the ADC
-
-  Serial.print("get value: \t\t");
-  Serial.println(scale.get_value(5)); // print the average of 5 readings from the ADC minus the tare weight, set with tare()
-
-  Serial.print("get units: \t\t");
-  Serial.println(scale.get_units(5), 1); // print the average of 5 readings from the ADC minus tare weight, divided
-                                         // by the SCALE parameter set with set_scale
-
-  Serial.println("Readings:");
 }
 
 void loop()
@@ -266,7 +248,7 @@ void loop()
   }
   else
   {
-    scale.power_up();
+
     if (scale.is_ready())
     {
       scale.set_scale();
@@ -280,7 +262,6 @@ void loop()
       Serial.print("Result of Calibration: ");
       long calibration_final = reading / Known_Weight;
       Serial.println(calibration_final);
-      scale.power_down(); // put the ADC in sleep mode
     }
     else
     {
