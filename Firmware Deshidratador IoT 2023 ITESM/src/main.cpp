@@ -7,17 +7,31 @@
 #include "ThingSpeak.h"
 #include "HX711.h"
 
+
+
+
+// CHANGE // // CHANGE // // CHANGE // // CHANGE //
+#define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
+boolean Calibration_Weight_Sensor = false; // False Not Calibration // True Calibration  
+#define SECRET_CH_ID 0000000                   // replace 0000000 with your channel number
+#define SECRET_WRITE_APIKEY "XYZ" // replace XYZ with your channel write API Key
+// CHANGE // // CHANGE // // CHANGE // // CHANGE //
+
+
+
+
+
+
+
+
+
+
 // HX711 Circuit wiring
 const int LOADCELL_DOUT_PIN = 2; // GPIO2 D2
 const int LOADCELL_SCK_PIN = 4;  /// GPIO4 D4
 
 HX711 scale;
 
-// CHANGE // // CHANGE // // CHANGE // // CHANGE //
-#define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
-#define SECRET_CH_ID 1868201                   // replace 0000000 with your channel number
-#define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
-// CHANGE // // CHANGE // // CHANGE // // CHANGE //
 
 WiFiClient client;
 unsigned long myChannelNumber = SECRET_CH_ID;
@@ -43,7 +57,7 @@ void tick_update_channel()
 
   ThingSpeak.setField(1, tempC_Sensor_1);
   ThingSpeak.setField(2, tempC_Sensor_2);
-  ThingSpeak.setField(3, tempC_Sensor_2);
+  ThingSpeak.setField(3, Weight_Sensor);
   myStatus = String("Deshidratador IoT OK");
   ThingSpeak.setStatus(myStatus);
 
@@ -166,6 +180,7 @@ void setup()
   // - With a gain factor of 32, channel B is selected
   // By omitting the gain factor parameter, the library
   // default "128" (Channel A) is used here.
+  
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
   Serial.println("Before setting up the scale:");
@@ -248,6 +263,9 @@ void loop()
   Serial.println(scale.get_units(10), 1);
 
   scale.power_down(); // put the ADC in sleep mode
+
+
+  
 
   //   if (scale.is_ready()) {
   //   scale.set_scale();
