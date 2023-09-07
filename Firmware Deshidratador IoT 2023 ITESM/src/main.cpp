@@ -7,31 +7,20 @@
 #include "ThingSpeak.h"
 #include "HX711.h"
 
-
-
-
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
 #define SECRET_NAME_TEAM "Carlos-Fizet"        // replace Carlos-Fizet with your name Team
-boolean Calibration_Weight_Sensor = false; // False Not Calibration // True Calibration  
-#define SECRET_CH_ID 0000000                   // replace 0000000 with your channel number
-#define SECRET_WRITE_APIKEY "XYZ" // replace XYZ with your channel write API Key
+boolean Calibration_Weight_Sensor = true;      // false Not Calibration // true Calibration
+double Known_Weight = 14.6;                    // Replace 14.6 with the value of the known object's weight in grams
+double Scale_Calibration_Result = 14.6;        // Replace 14.6 with the value of the known object's weight in grams
+#define SECRET_CH_ID 1868201                   // replace 0000000 with your channel number
+#define SECRET_WRITE_APIKEY "4OBXGH5RP9UFPVOF" // replace XYZ with your channel write API Key
 // CHANGE // // CHANGE // // CHANGE // // CHANGE //
-
-
-
-
-
-
-
-
-
 
 // HX711 Circuit wiring
 const int LOADCELL_DOUT_PIN = 2; // GPIO2 D2
 const int LOADCELL_SCK_PIN = 4;  /// GPIO4 D4
 
 HX711 scale;
-
 
 WiFiClient client;
 unsigned long myChannelNumber = SECRET_CH_ID;
@@ -112,26 +101,33 @@ void setup()
   Serial.begin(115200);
   Serial.println("Deshidratador IoT ITESM 2023");
 
-  WiFiManager wm;
-
-  bool res;
-
-  res = wm.autoConnect("Deshidratador IoT"); // password protected ap
-  ticker.attach(0.1, tick);
-
-  if (!res)
+  if (Calibration_Weight_Sensor == false)
   {
-    Serial.println("Failed to connect");
-    // ESP.restart();
+    Serial.println("Mode Normal");
+    WiFiManager wm;
+
+    bool res;
+
+    res = wm.autoConnect("Deshidratador IoT"); // password protected ap
+    ticker.attach(0.1, tick);
+
+    if (!res)
+    {
+      Serial.println("Failed to connect");
+      // ESP.restart();
+    }
+    else
+    {
+      // if you get here you have connected to the WiFi
+      Serial.println("connected...yeey :)");
+      ticker.detach();
+      digitalWrite(LED_WiFi, LOW);
+    }
   }
   else
   {
-    // if you get here you have connected to the WiFi
-    Serial.println("connected...yeey :)");
-    ticker.detach();
-    digitalWrite(LED_WiFi, LOW);
+    Serial.println("Mode Calibration Weight Sensor");
   }
-
   //
   sensors.begin();
   // locate devices on the bus
@@ -167,9 +163,11 @@ void setup()
   Serial.print(sensors.getResolution(Sensor_2), DEC);
   Serial.println();
 
-  ThingSpeak.begin(client);
-  ticker.attach(20, tick_update_channel);
-
+  if (Calibration_Weight_Sensor == false)
+  {
+    ThingSpeak.begin(client);
+    ticker.attach(5, tick_update_channel);
+  }
   Serial.println("HX711 Demo");
 
   Serial.println("Initializing the scale");
@@ -180,7 +178,7 @@ void setup()
   // - With a gain factor of 32, channel B is selected
   // By omitting the gain factor parameter, the library
   // default "128" (Channel A) is used here.
-  
+
   scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
 
   Serial.println("Before setting up the scale:");
@@ -197,7 +195,7 @@ void setup()
   Serial.println(scale.get_units(5), 1); // print the average of 5 readings from the ADC minus tare weight (not set) divided
                                          // by the SCALE parameter (not set yet)
 
-  //   scale.set_scale(1925); // this value is obtained by calibrating the scale with known weights; see the README for details
+  // scale.set_scale(1925); // this value is obtained by calibrating the scale with known weights; see the README for details
   // scale.set_scale(0.6849315068493151);
   scale.set_scale(2280.f);
   scale.tare(); // reset the scale to 0
@@ -222,65 +220,72 @@ void setup()
 
 void loop()
 {
-
-  Serial.println("-----------------------------");
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= interval)
+  if (Calibration_Weight_Sensor == false)
   {
-    sensors.requestTemperatures();
-
-    digitalWrite(LED_WiFi, HIGH);
-    tempC_Sensor_1 = sensors.getTempC(Sensor_1);
-    if (tempC_Sensor_1 == DEVICE_DISCONNECTED_C)
+    Serial.println("-----------------------------");
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval)
     {
-      Serial.println("Error: Could not read temperature data");
-      return;
-    }
-    Serial.print("Sensor 1 => ");
-    Serial.print("Temp C: ");
-    Serial.print(tempC_Sensor_1);
-    Serial.print(" Temp F: ");
-    Serial.println(DallasTemperature::toFahrenheit(tempC_Sensor_1));
+      sensors.requestTemperatures();
 
-    tempC_Sensor_2 = sensors.getTempC(Sensor_2);
-    if (tempC_Sensor_2 == DEVICE_DISCONNECTED_C)
-    {
-      Serial.println("Error: Could not read temperature data");
-      return;
+      digitalWrite(LED_WiFi, HIGH);
+      tempC_Sensor_1 = sensors.getTempC(Sensor_1);
+      if (tempC_Sensor_1 == DEVICE_DISCONNECTED_C)
+      {
+        Serial.println("Error: Could not read temperature data");
+        return;
+      }
+      Serial.print("Sensor 1 => ");
+      Serial.print("Temp C: ");
+      Serial.print(tempC_Sensor_1);
+      Serial.print(" Temp F: ");
+      Serial.println(DallasTemperature::toFahrenheit(tempC_Sensor_1));
+
+      tempC_Sensor_2 = sensors.getTempC(Sensor_2);
+      if (tempC_Sensor_2 == DEVICE_DISCONNECTED_C)
+      {
+        Serial.println("Error: Could not read temperature data");
+        return;
+      }
+      Serial.print("Sensor 2 => ");
+      Serial.print("Temp C: ");
+      Serial.print(tempC_Sensor_2);
+      Serial.print(" Temp F: ");
+      Serial.println(DallasTemperature::toFahrenheit(tempC_Sensor_2));
+      digitalWrite(LED_WiFi, LOW);
     }
-    Serial.print("Sensor 2 => ");
-    Serial.print("Temp C: ");
-    Serial.print(tempC_Sensor_2);
-    Serial.print(" Temp F: ");
-    Serial.println(DallasTemperature::toFahrenheit(tempC_Sensor_2));
-    digitalWrite(LED_WiFi, LOW);
+
+    scale.power_up();
+    Serial.print("one reading:\t");
+    Serial.print(scale.get_units(), 1);
+    Serial.print("\t| average:\t");
+    Weight_Sensor = scale.get_units(10);
+    Serial.println(scale.get_units(10), 1);
+
+    scale.power_down(); // put the ADC in sleep mode
   }
-
-  scale.power_up();
-  Serial.print("one reading:\t");
-  Serial.print(scale.get_units(), 1);
-  Serial.print("\t| average:\t");
-  Serial.println(scale.get_units(10), 1);
-
-  scale.power_down(); // put the ADC in sleep mode
-
-
-  
-
-  //   if (scale.is_ready()) {
-  //   scale.set_scale();
-  //   Serial.println("Tare... remove any weights from the scale.");
-  //   delay(5000);
-  //   scale.tare();
-  //   Serial.println("Tare done...");
-  //   Serial.print("Place a known weight on the scale...");
-  //   delay(5000);
-  //   long reading = scale.get_units(10);
-  //   Serial.print("Result: ");
-  //   Serial.println(reading);
-  // }
-  // else {
-  //   Serial.println("HX711 not found.");
-  // }
-  // delay(1000);
+  else
+  {
+    scale.power_up();
+    if (scale.is_ready())
+    {
+      scale.set_scale();
+      Serial.println("Tare... remove any weights from the scale.");
+      delay(5000);
+      scale.tare();
+      Serial.println("Tare done...");
+      Serial.print("Place a known weight on the scale...");
+      delay(5000);
+      long reading = scale.get_units(10);
+      Serial.print("Result of Calibration: ");
+      long calibration_final = reading / Known_Weight;
+      Serial.println(calibration_final);
+      scale.power_down(); // put the ADC in sleep mode
+    }
+    else
+    {
+      Serial.println("HX711 not found.");
+    }
+    delay(1000);
+  }
 }
